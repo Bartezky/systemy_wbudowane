@@ -105,16 +105,16 @@ void onConnectionEstablished() {
 }
 
 
-const uint16_t color1 = dma_display->color565(64, 0, 64);
-const uint16_t color2 = dma_display->color565(128, 0, 0);
-const uint16_t color3 = dma_display->color565(0, 64, 64);
-const uint16_t color4 = dma_display->color565(0, 128, 0);
-const uint16_t color5 = dma_display->color565(64, 64, 0);
-const uint16_t color6 = dma_display->color565(128, 128, 128);
-const uint16_t color7 = dma_display->color565(255, 0, 0);
-const uint16_t color8 = dma_display->color565(0, 0, 255);
+// const uint16_t color1 = dma_display->color565(64, 0, 64);
+// const uint16_t color2 = dma_display->color565(128, 0, 0);
+// const uint16_t color3 = dma_display->color565(0, 64, 64);
+// const uint16_t color4 = dma_display->color565(0, 128, 0);
+// const uint16_t color5 = dma_display->color565(64, 64, 0);
+// const uint16_t color6 = dma_display->color565(128, 128, 128);
+// const uint16_t color7 = dma_display->color565(255, 0, 0);
+// const uint16_t color8 = dma_display->color565(0, 0, 255);
 
-const uint16_t colors[] = {color1, color2, color3, color4, color5, color6, color7, color8};
+// const uint16_t colors[] = {color1, color2, color3, color4, color5, color6, color7, color8};
 
 int sort_array[COLS];
 
@@ -127,14 +127,14 @@ void sort_initialize() {
 void sort_display() {
     dma_display->clearScreen();
     for(int i=0; i<COLS; ++i) {
-        dma_display->drawFastVLine(i, ROWS-sort_array[i], sort_array[i], color3);
+        dma_display->drawFastVLine(i, ROWS-sort_array[i], sort_array[i], dma_display->color565(0, 64, 64));
     }
 }
 
 void sort_display(int x1, int x2) {
     sort_display();
-    dma_display->drawFastVLine(x1, ROWS-sort_array[x1], sort_array[x1], color2);
-    dma_display->drawFastVLine(x2, ROWS-sort_array[x2], sort_array[x2], color2);
+    dma_display->drawFastVLine(x1, ROWS-sort_array[x1], sort_array[x1], dma_display->color565(128, 0, 0));
+    dma_display->drawFastVLine(x2, ROWS-sort_array[x2], sort_array[x2], dma_display->color565(128, 0, 0));
 }
 
 void sort_display(String name) {
@@ -162,6 +162,58 @@ void bubble_sort() {
             vTaskDelay(10);
         }
     }
+    sort_display();
+    vTaskDelay(1000);
+}
+
+void merge(int a, int m, int b) {
+    int n1 = m - a + 1;
+    int n2 = b - a;
+    std::vector<int> L(n1);
+    for (int i=0; i<n1; ++i) {
+        L[i] = sort_array[a + i];
+    }
+
+    int i = 0, j = 0, k = a;
+    while (i < n1 && j < n2) {
+        // sort_display(k, m + j + 1);
+        // vTaskDelay(100);
+        if (L[i] <= sort_array[m + j + 1]) {
+            sort_array[k] = L[i];
+            ++i;
+        } else {
+            sort_array[k] = sort_array[m + j + 1];
+            ++j;
+        }
+        ++k;
+    }
+
+    while (i < n1) {
+        sort_array[k] = L[i];
+        ++i;
+        ++k;
+    }
+}
+
+
+void merge_sort(int a, int b) {
+    if (a == b) {
+        return;
+    }
+    else {
+        int m = a + (b - a) / 2;
+        merge_sort(a, m);
+        merge_sort(m+1, b);
+        merge(a, m, b);
+        sort_display();
+        vTaskDelay(300);
+    }
+}
+
+void m_sort() {
+    sort_display("Merge");
+    sort_display();
+    merge_sort(0, COLS-1);
     sort_display();
     vTaskDelay(1000);
 }
@@ -213,7 +265,9 @@ void setup() {
 void loop() {
     // client.loop();
     sort_initialize();
-    bubble_sort();
+    m_sort();
+    // bubble_sort();
+    vTaskDelay(1000);
 
 
     // if(sppStateUpd==true){

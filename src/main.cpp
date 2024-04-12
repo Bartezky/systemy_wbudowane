@@ -166,6 +166,37 @@ void bubble_sort() {
     vTaskDelay(1000);
 }
 
+    void swap(int a, int b) {
+        int tmp = a;
+        a = b;
+        b = tmp;
+    }
+
+    int partition(int start, int end) {
+        int x = sort_array[end];
+        int i = start-1;
+        for(int j = start; j<end; j++) {
+            if(sort_array[j]<=x) {
+                i++;
+                sort_display(j, end);
+                sleep(20);
+                swap(sort_array[i], sort_array[j]);
+            }
+            
+        }
+        swap(i++, end);
+        return i;
+    }
+
+    void quick_sort(int start, int end) {
+        if (start < end) {
+            int pivot = partition(start, end);
+            quick_sort(start, pivot-1);
+            quick_sort(pivot+1, end);
+        }
+
+    }
+
 //33 32 35 34
 const uint8_t button[4] = {34, 35, 32, 33};
 #define BUTTON0   button[0]
@@ -213,7 +244,9 @@ void setup() {
 void loop() {
     // client.loop();
     sort_initialize();
-    bubble_sort();
+    quick_sort(0, COLS-1);
+    sleep(2000);
+
 
 
     // if(sppStateUpd==true){

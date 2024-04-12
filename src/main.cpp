@@ -20,7 +20,6 @@
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
 #include <vector>
-#include <WiFi.h>
 #include <unordered_map>
 
 
@@ -87,9 +86,6 @@ EspMQTTClient client(
 );
 
 
-const char *WIFI_ssid = "Urwany toster";
-const char *WIFI_password = "5q369G0?";
-
 int delay_time = 250;
 
 
@@ -119,7 +115,7 @@ void life_initialize() {
 
     for (int i = 0; i < ROWS; ++i) {
         for (int j = 0; j < COLS; ++j) {
-            life_foreground[i][j] = esp_random() % 2 == 0;
+            life_foreground[i][j] = random() % 2 == 0;
         }
     }
 }
@@ -342,11 +338,6 @@ void setup() {
             PANEL_CHAIN,    // Chain length
             _pins // pin mapping
     );
-    WiFi.begin(WIFI_ssid, WIFI_password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
     dma_display = new MatrixPanel_I2S_DMA(mxconfig);
     dma_display->begin();
     dma_display->setBrightness8(90); //0-255

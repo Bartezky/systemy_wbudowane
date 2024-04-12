@@ -116,11 +116,22 @@ void onConnectionEstablished() {
 
 // const uint16_t colors[] = {color1, color2, color3, color4, color5, color6, color7, color8};
 
+void IRAM_ATTR isr_cnf(void) {
+    Serial.println("STH");
+}
+
+
 int sort_array[COLS];
 
-void sort_initialize() {
+void sort_initialize_random() {
     for(int i=0; i<COLS; ++i) {
         sort_array[i] = random(1, ROWS);
+    }
+}
+
+void sort_initialize_sorted() {
+    for(int i=0; i<COLS; ++i) {
+        sort_array[i] = i/2;
     }
 }
 
@@ -218,36 +229,43 @@ void m_sort() {
     vTaskDelay(1000);
 }
 
-    void swap(int a, int b) {
-        int tmp = a;
-        a = b;
-        b = tmp;
-    }
 
-    int partition(int start, int end) {
-        int x = sort_array[end];
-        int i = start-1;
-        for(int j = start; j<end; j++) {
-            if(sort_array[j]<=x) {
-                i++;
-                sort_display(j, end);
-                vTaskDelay(20);
-                swap(sort_array[i], sort_array[j]);
-            }
-            
+int partition(int start, int end) {
+    int x = sort_array[end];
+    int i = start-1;
+    for(int j = start; j<end; j++) {
+        if(sort_array[j]<=x) {
+            i++;
+            sort_display(j, end);
+            vTaskDelay(50);
+            int tmp = sort_array[i];
+            sort_array[i] = sort_array[j];
+            sort_array[j] = tmp;
         }
-        swap(i++, end);
-        return i;
+        
     }
+    i++;
+    int tmp = sort_array[i];
+    sort_array[i] = sort_array[end];
+    sort_array[end] = tmp;
+    return i;
+}
 
-    void quick_sort(int start, int end) {
-        if (start < end) {
-            int pivot = partition(start, end);
-            quick_sort(start, pivot-1);
-            quick_sort(pivot+1, end);
-        }
-
+void quick_sort(int start, int end) {
+    if (start < end) {
+        int pivot = partition(start, end);
+        quick_sort(start, pivot-1);
+        quick_sort(pivot+1, end);
     }
+}
+
+void q_sort() {
+    sort_display("Quick");
+    sort_display();
+    quick_sort(0, COLS-1);
+    sort_display();
+    vTaskDelay(1000);
+}
 
 //33 32 35 34
 const uint8_t button[4] = {34, 35, 32, 33};
@@ -282,6 +300,8 @@ void setup() {
         pinMode(button[i], INPUT_PULLUP);
     }
 
+    attachInterrupt(button[0],isr_cnf,FALLING);
+
     Serial.printf("MQTT Client init...");
     client.enableLastWillMessage("spp/lastwill",
                                  "I am going offline");  // You can activate the retain flag by setting the third parameter to true
@@ -295,12 +315,12 @@ void setup() {
 
 void loop() {
     // client.loop();
-    sort_initialize();
-    // m_sort();
-    // bubble_sort();
-    // vTaskDelay(1000);
-    quick_sort(0, COLS-1);
-    vTaskDelay(2000);
+    sort_initialize_sorted();
+    bubble_sort();
+    sort_initialize_sorted();
+    m_sort();
+    sort_initialize_sorted();
+    q_sort();
 
 
 

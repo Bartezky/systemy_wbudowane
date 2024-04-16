@@ -324,6 +324,34 @@ void q_sort() {
         vTaskDelay(1000);
     }
 
+    void shells() {
+        for (int gap = COLS / 2; gap > 0; gap /= 2) {
+            for (int i = gap; i < COLS; i++) {
+                int temp = sort_array[i];
+                int j;
+
+                for (j = i; j >= gap && sort_array[j - gap] > temp; j -= gap) {
+                    sort_array[j] = sort_array[j - gap];
+                    sort_display(j, j - gap);  // Visualize sorting step
+                    vTaskDelay(10);
+                }
+
+                sort_array[j] = temp;
+                sort_display(j, i);  // Visualize insertion step
+                vTaskDelay(10);
+            }
+        }
+    }
+
+
+    void shell_sort() {
+        sort_display("Shell");
+        sort_display();
+        shells();
+        sort_display();
+        vTaskDelay(1000);
+    }
+
 //33 32 35 34
 const uint8_t button[4] = {34, 35, 32, 33};
 #define BUTTON0   button[0]
@@ -372,6 +400,8 @@ void setup() {
 
 void loop() {
     // client.loop();
+    sort_initialize_random();
+    shell_sort();
     sort_initialize_random();
     i_sort();
     sort_initialize_random();

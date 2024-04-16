@@ -267,6 +267,63 @@ void q_sort() {
     vTaskDelay(1000);
 }
 
+
+    void selection_sort() {
+        for(int j = 0; j<COLS; j++) {
+            int min = sort_array[j];
+            int min_idx = j;
+            for(int i = j; i<COLS; i++) {
+                if (sort_array[i] < min) {
+                    min = sort_array[i];
+                    min_idx = i;
+                }
+                sort_display(i, min_idx);    
+                vTaskDelay(10);
+            }
+            int tmp = sort_array[min_idx];
+            sort_array[min_idx] = sort_array[j];
+            sort_array[j] = tmp;
+            sort_display(j, min_idx);
+            vTaskDelay(10);
+        }
+    }
+
+    void s_sort() {
+        sort_display("Selection");
+        sort_display();
+        selection_sort();
+        sort_display();
+        vTaskDelay(1000);
+    }
+
+    
+    void insertion_sort() {
+    for (int i = 1; i < COLS; i++) {
+        int key = sort_array[i];  // Current element to be inserted
+        int j = i - 1;  // Index of the last element in the sorted subarray
+
+        // Move elements of sorted subarray that are greater than key
+        while (j >= 0 && sort_array[j] > key) {
+            sort_array[j + 1] = sort_array[j];  // Shift element to the right
+            sort_display(j + 1, j);  // Visualize the sorting step
+            j--;
+            vTaskDelay(10);
+            }
+        sort_array[j + 1] = key;  // Place key in its correct position
+        sort_display(j + 1, i);  // Visualize the insertion
+        vTaskDelay(10);
+        }
+    }
+
+
+    void i_sort() {
+        sort_display("Insertion");
+        sort_display();
+        insertion_sort();
+        sort_display();
+        vTaskDelay(1000);
+    }
+
 //33 32 35 34
 const uint8_t button[4] = {34, 35, 32, 33};
 #define BUTTON0   button[0]
@@ -315,11 +372,15 @@ void setup() {
 
 void loop() {
     // client.loop();
-    sort_initialize_sorted();
+    sort_initialize_random();
+    i_sort();
+    sort_initialize_random();
+    s_sort();
+    sort_initialize_random();
     bubble_sort();
-    sort_initialize_sorted();
+    sort_initialize_random();
     m_sort();
-    sort_initialize_sorted();
+    sort_initialize_random();
     q_sort();
 
 

@@ -70,18 +70,14 @@ extern EspMQTTClient client;
 
 
 EspMQTTClient client(
-        "esp",
-        "haslo8266",
-        "192.168.0.66", /* // MQTT Broker server ip
-  "mqttuser",   // Can be omitted if not needed
-  "mqttpass",   // Can be omitted if not needed*/
-        "LEDMTXCLK"      // Client name that uniquely identify your device
+    "esp",
+    "haslo8266",
+    "192.168.0.66", /* // MQTT Broker server ip
+    "mqttuser",   // Can be omitted if not needed
+    "mqttpass",   // Can be omitted if not needed*/
+    "LEDMTXCLK"      // Client name that uniquely identify your device
 
 );
-
-
-// const char *WIFI_ssid = "Urwany toster";
-// const char *WIFI_password = "5q369G0?";
 
 
 //todo: https://www.geeksforgeeks.org/convert-string-char-array-cpp/
@@ -104,18 +100,6 @@ void onConnectionEstablished() {
 #endif
 }
 
-
-// const uint16_t color1 = dma_display->color565(64, 0, 64);
-// const uint16_t color2 = dma_display->color565(128, 0, 0);
-// const uint16_t color3 = dma_display->color565(0, 64, 64);
-// const uint16_t color4 = dma_display->color565(0, 128, 0);
-// const uint16_t color5 = dma_display->color565(64, 64, 0);
-// const uint16_t color6 = dma_display->color565(128, 128, 128);
-// const uint16_t color7 = dma_display->color565(255, 0, 0);
-// const uint16_t color8 = dma_display->color565(0, 0, 255);
-
-// const uint16_t colors[] = {color1, color2, color3, color4, color5, color6, color7, color8};
-
 void IRAM_ATTR isr_cnf(void) {
     Serial.println("STH");
 }
@@ -124,28 +108,28 @@ void IRAM_ATTR isr_cnf(void) {
 int sort_array[COLS];
 
 void sort_initialize_random() {
-    for(int i=0; i<COLS; ++i) {
+    for (int i = 0; i < COLS; ++i) {
         sort_array[i] = random(1, ROWS);
     }
 }
 
 void sort_initialize_sorted() {
-    for(int i=0; i<COLS; ++i) {
-        sort_array[i] = i/2;
+    for (int i = 0; i < COLS; ++i) {
+        sort_array[i] = i / 2;
     }
 }
 
 void sort_display() {
     dma_display->clearScreen();
-    for(int i=0; i<COLS; ++i) {
-        dma_display->drawFastVLine(i, ROWS-sort_array[i], sort_array[i], dma_display->color565(0, 64, 64));
+    for (int i = 0; i < COLS; ++i) {
+        dma_display->drawFastVLine(i, ROWS - sort_array[i], sort_array[i], dma_display->color565(0, 64, 64));
     }
 }
 
 void sort_display(int x1, int x2) {
     sort_display();
-    dma_display->drawFastVLine(x1, ROWS-sort_array[x1], sort_array[x1], dma_display->color565(128, 0, 0));
-    dma_display->drawFastVLine(x2, ROWS-sort_array[x2], sort_array[x2], dma_display->color565(128, 0, 0));
+    dma_display->drawFastVLine(x1, ROWS - sort_array[x1], sort_array[x1], dma_display->color565(128, 0, 0));
+    dma_display->drawFastVLine(x2, ROWS - sort_array[x2], sort_array[x2], dma_display->color565(128, 0, 0));
 }
 
 void sort_display(String name) {
@@ -160,15 +144,15 @@ void sort_display(String name) {
 void bubble_sort() {
     sort_display("Bubble");
     sort_display();
-    for(int i=0; i<COLS-1; ++i) {
-        for(int j=0; j<COLS-i-1; ++j){
-            sort_display(j, j+1);
+    for (int i = 0; i < COLS - 1; ++i) {
+        for (int j = 0; j < COLS - i - 1; ++j) {
+            sort_display(j, j + 1);
             vTaskDelay(10);
-            if (sort_array[j] > sort_array[j+1]) {
+            if (sort_array[j] > sort_array[j + 1]) {
                 int tmp = sort_array[j];
-                sort_array[j] = sort_array[j+1];
-                sort_array[j+1] = tmp;
-                sort_display(j, j+1);
+                sort_array[j] = sort_array[j + 1];
+                sort_array[j + 1] = tmp;
+                sort_display(j, j + 1);
             }
             vTaskDelay(10);
         }
@@ -181,7 +165,7 @@ void merge(int a, int m, int b) {
     int n1 = m - a + 1;
     int n2 = b - a;
     std::vector<int> L(n1);
-    for (int i=0; i<n1; ++i) {
+    for (int i = 0; i < n1; ++i) {
         L[i] = sort_array[a + i];
     }
 
@@ -210,11 +194,10 @@ void merge(int a, int m, int b) {
 void merge_sort(int a, int b) {
     if (a == b) {
         return;
-    }
-    else {
+    } else {
         int m = a + (b - a) / 2;
         merge_sort(a, m);
-        merge_sort(m+1, b);
+        merge_sort(m + 1, b);
         merge(a, m, b);
         sort_display();
         vTaskDelay(300);
@@ -224,7 +207,7 @@ void merge_sort(int a, int b) {
 void m_sort() {
     sort_display("Merge");
     sort_display();
-    merge_sort(0, COLS-1);
+    merge_sort(0, COLS - 1);
     sort_display();
     vTaskDelay(1000);
 }
@@ -232,9 +215,9 @@ void m_sort() {
 
 int partition(int start, int end) {
     int x = sort_array[end];
-    int i = start-1;
-    for(int j = start; j<end; j++) {
-        if(sort_array[j]<=x) {
+    int i = start - 1;
+    for (int j = start; j < end; j++) {
+        if (sort_array[j] <= x) {
             i++;
             sort_display(j, end);
             vTaskDelay(50);
@@ -242,7 +225,7 @@ int partition(int start, int end) {
             sort_array[i] = sort_array[j];
             sort_array[j] = tmp;
         }
-        
+
     }
     i++;
     int tmp = sort_array[i];
@@ -254,103 +237,102 @@ int partition(int start, int end) {
 void quick_sort(int start, int end) {
     if (start < end) {
         int pivot = partition(start, end);
-        quick_sort(start, pivot-1);
-        quick_sort(pivot+1, end);
+        quick_sort(start, pivot - 1);
+        quick_sort(pivot + 1, end);
     }
 }
 
 void q_sort() {
     sort_display("Quick");
     sort_display();
-    quick_sort(0, COLS-1);
+    quick_sort(0, COLS - 1);
     sort_display();
     vTaskDelay(1000);
 }
 
 
-    void selection_sort() {
-        for(int j = 0; j<COLS; j++) {
-            int min = sort_array[j];
-            int min_idx = j;
-            for(int i = j; i<COLS; i++) {
-                if (sort_array[i] < min) {
-                    min = sort_array[i];
-                    min_idx = i;
-                }
-                sort_display(i, min_idx);    
-                vTaskDelay(10);
+void selection_sort() {
+    for (int j = 0; j < COLS; j++) {
+        int min = sort_array[j];
+        int min_idx = j;
+        for (int i = j; i < COLS; i++) {
+            if (sort_array[i] < min) {
+                min = sort_array[i];
+                min_idx = i;
             }
-            int tmp = sort_array[min_idx];
-            sort_array[min_idx] = sort_array[j];
-            sort_array[j] = tmp;
-            sort_display(j, min_idx);
+            sort_display(i, min_idx);
             vTaskDelay(10);
         }
+        int tmp = sort_array[min_idx];
+        sort_array[min_idx] = sort_array[j];
+        sort_array[j] = tmp;
+        sort_display(j, min_idx);
+        vTaskDelay(10);
     }
+}
 
-    void s_sort() {
-        sort_display("Selection");
-        sort_display();
-        selection_sort();
-        sort_display();
-        vTaskDelay(1000);
-    }
+void s_sort() {
+    sort_display("Selection");
+    sort_display();
+    selection_sort();
+    sort_display();
+    vTaskDelay(1000);
+}
 
-    
-    void insertion_sort() {
+
+void insertion_sort() {
     for (int i = 1; i < COLS; i++) {
-        int key = sort_array[i];  // Current element to be inserted
-        int j = i - 1;  // Index of the last element in the sorted subarray
+        int key = sort_array[i];
+        int j = i - 1;
 
-        // Move elements of sorted subarray that are greater than key
         while (j >= 0 && sort_array[j] > key) {
-            sort_array[j + 1] = sort_array[j];  // Shift element to the right
-            sort_display(j + 1, j);  // Visualize the sorting step
+            sort_array[j + 1] = sort_array[j]; 
+            sort_display(j + 1, j);
             j--;
             vTaskDelay(10);
-            }
-        sort_array[j + 1] = key;  // Place key in its correct position
-        sort_display(j + 1, i);  // Visualize the insertion
-        vTaskDelay(10);
         }
+        sort_array[j + 1] = key; 
+        sort_display(j + 1, i);
+        vTaskDelay(10);
     }
+}
 
 
-    void i_sort() {
-        sort_display("Insertion");
-        sort_display();
-        insertion_sort();
-        sort_display();
-        vTaskDelay(1000);
-    }
+void i_sort() {
+    sort_display("Insertion");
+    sort_display();
+    insertion_sort();
+    sort_display();
+    vTaskDelay(1000);
+}
 
-    void shells() {
-        for (int gap = COLS / 2; gap > 0; gap /= 2) {
-            for (int i = gap; i < COLS; i++) {
-                int temp = sort_array[i];
-                int j;
+void shells() {
+    for (int gap = COLS / 2; gap > 0; gap /= 2) {
+        for (int i = gap; i < COLS; i++) {
+            int temp = sort_array[i];
+            int j;
 
-                for (j = i; j >= gap && sort_array[j - gap] > temp; j -= gap) {
-                    sort_array[j] = sort_array[j - gap];
-                    sort_display(j, j - gap);  // Visualize sorting step
-                    vTaskDelay(10);
-                }
-
-                sort_array[j] = temp;
-                sort_display(j, i);  // Visualize insertion step
+            for (j = i; j >= gap && sort_array[j - gap] > temp; j -= gap) {
+                sort_array[j] = sort_array[j - gap];
+                sort_display(j, j - gap);
                 vTaskDelay(10);
             }
+
+            sort_array[j] = temp;
+            sort_display(j, i);
+            vTaskDelay(10);
         }
     }
+}
 
 
-    void shell_sort() {
-        sort_display("Shell");
-        sort_display();
-        shells();
-        sort_display();
-        vTaskDelay(1000);
-    }
+void shell_sort() {
+    sort_display("Shell");
+    sort_display();
+    shells();
+    sort_display();
+    vTaskDelay(1000);
+}
 
 //33 32 35 34
 const uint8_t button[4] = {34, 35, 32, 33};
@@ -385,7 +367,7 @@ void setup() {
         pinMode(button[i], INPUT_PULLUP);
     }
 
-    attachInterrupt(button[0],isr_cnf,FALLING);
+    attachInterrupt(button[0], isr_cnf, FALLING);
 
     Serial.printf("MQTT Client init...");
     client.enableLastWillMessage("spp/lastwill",

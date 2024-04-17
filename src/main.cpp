@@ -19,6 +19,7 @@
 #include "FreeSansBold8pt7b.h"
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 
+#include <unordered_map>
 
 #define PANEL_RES_X 64      // Number of pixels wide of each INDIVIDUAL panel module. 
 #define PANEL_RES_Y 32     // Number of pixels tall of each INDIVIDUAL panel module.
@@ -70,12 +71,12 @@ extern EspMQTTClient client;
 
 
 EspMQTTClient client(
-    "esp",
-    "haslo8266",
-    "192.168.0.66", /* // MQTT Broker server ip
+        "esp",
+        "haslo8266",
+        "192.168.0.66", /* // MQTT Broker server ip
     "mqttuser",   // Can be omitted if not needed
     "mqttpass",   // Can be omitted if not needed*/
-    "LEDMTXCLK"      // Client name that uniquely identify your device
+        "LEDMTXCLK"      // Client name that uniquely identify your device
 
 );
 
@@ -100,8 +101,66 @@ void onConnectionEstablished() {
 #endif
 }
 
-void IRAM_ATTR isr_cnf(void) {
-    Serial.println("STH");
+bool button_clicked[] = {false, false, false, false};
+int menu_cursor = 0;
+bool in_menu = false;
+static unsigned long last_click_time = 0;
+#define CLICK_DELAY 250
+int speed = 2;
+
+int delays[] = {500, 200, 100, 50, 20, 10, 5, 2, 1, 0};
+
+void unclick_buttons() {
+    for (int i = 0; i < 4; ++i) button_clicked[i] = false;
+}
+
+void IRAM_ATTR button0_clicked(void) {
+    if (millis() - last_click_time > CLICK_DELAY) {
+        last_click_time = millis();
+        Serial.println("Button 0 clicked");
+        if (!in_menu) {
+            in_menu = true;
+            menu_cursor = 0;
+            speed = 9;
+            unclick_buttons();
+        } else {
+            button_clicked[0] = true;
+        }
+    }
+}
+
+void IRAM_ATTR button1_clicked(void) {
+    if (millis() - last_click_time > CLICK_DELAY) {
+        last_click_time = millis();
+        Serial.println("Button 1 clicked");
+        if (!in_menu) {
+            speed++;
+            if (speed > 8) speed = 8;
+        } else {
+            button_clicked[1] = true;
+        }
+    }
+}
+
+void IRAM_ATTR button2_clicked(void) {
+    if (millis() - last_click_time > CLICK_DELAY) {
+        last_click_time = millis();
+        Serial.println("Button 2 clicked");
+        if (!in_menu) {
+            speed--;
+            if (speed < 0) speed = 0;
+        } else {
+            button_clicked[2] = true;
+        }
+    }
+}
+
+void IRAM_ATTR button3_clicked(void) {
+    if (millis() - last_click_time > CLICK_DELAY) {
+        last_click_time = millis();
+        Serial.println("Button 3 clicked");
+        button_clicked[3] = true;
+    }
 }
 
 
@@ -119,7 +178,14 @@ void sort_initialize_sorted() {
     }
 }
 
+void sort_initialize_asorted() {
+    for (int i = 0; i < COLS; ++i) {
+        sort_array[COLS - i] = i / 2;
+    }
+}
+
 void sort_display() {
+    if (in_menu) return;
     dma_display->clearScreen();
     for (int i = 0; i < COLS; ++i) {
         dma_display->drawFastVLine(i, ROWS - sort_array[i], sort_array[i], dma_display->color565(0, 64, 64));
@@ -127,6 +193,7 @@ void sort_display() {
 }
 
 void sort_display(int x1, int x2) {
+    if (in_menu) return;
     sort_display();
     dma_display->drawFastVLine(x1, ROWS - sort_array[x1], sort_array[x1], dma_display->color565(128, 0, 0));
     dma_display->drawFastVLine(x2, ROWS - sort_array[x2], sort_array[x2], dma_display->color565(128, 0, 0));
@@ -134,9 +201,9 @@ void sort_display(int x1, int x2) {
 
 void sort_display(String name) {
     dma_display->clearScreen();
-    dma_display->setCursor(3, 3);
+    dma_display->setCursor(2, 10);
     dma_display->print(name);
-    dma_display->setCursor(3, 15);
+    dma_display->setCursor(2, 20);
     dma_display->print("sort");
     vTaskDelay(1000);
 }
@@ -147,14 +214,14 @@ void bubble_sort() {
     for (int i = 0; i < COLS - 1; ++i) {
         for (int j = 0; j < COLS - i - 1; ++j) {
             sort_display(j, j + 1);
-            vTaskDelay(10);
+            vTaskDelay(delays[speed]);
             if (sort_array[j] > sort_array[j + 1]) {
                 int tmp = sort_array[j];
                 sort_array[j] = sort_array[j + 1];
                 sort_array[j + 1] = tmp;
                 sort_display(j, j + 1);
             }
-            vTaskDelay(10);
+            vTaskDelay(delays[speed]);
         }
     }
     sort_display();
@@ -171,8 +238,8 @@ void merge(int a, int m, int b) {
 
     int i = 0, j = 0, k = a;
     while (i < n1 && j < n2) {
-        // sort_display(k, m + j + 1);
-        // vTaskDelay(100);
+        sort_display(k, m + j + 1);
+        vTaskDelay(delays[speed]);
         if (L[i] <= sort_array[m + j + 1]) {
             sort_array[k] = L[i];
             ++i;
@@ -200,7 +267,7 @@ void merge_sort(int a, int b) {
         merge_sort(m + 1, b);
         merge(a, m, b);
         sort_display();
-        vTaskDelay(300);
+        vTaskDelay(delays[speed]);
     }
 }
 
@@ -214,13 +281,17 @@ void m_sort() {
 
 
 int partition(int start, int end) {
-    int x = sort_array[end];
+    int id = random(start, end + 1);
+    int x = sort_array[id];
+    sort_array[id] = sort_array[end];
+    sort_array[end] = x;
+
     int i = start - 1;
     for (int j = start; j < end; j++) {
         if (sort_array[j] <= x) {
             i++;
             sort_display(j, end);
-            vTaskDelay(50);
+            vTaskDelay(delays[speed]);
             int tmp = sort_array[i];
             sort_array[i] = sort_array[j];
             sort_array[j] = tmp;
@@ -231,6 +302,8 @@ int partition(int start, int end) {
     int tmp = sort_array[i];
     sort_array[i] = sort_array[end];
     sort_array[end] = tmp;
+    sort_display(i, end);
+    vTaskDelay(delays[speed]);
     return i;
 }
 
@@ -261,13 +334,13 @@ void selection_sort() {
                 min_idx = i;
             }
             sort_display(i, min_idx);
-            vTaskDelay(10);
+            vTaskDelay(delays[speed]);
         }
         int tmp = sort_array[min_idx];
         sort_array[min_idx] = sort_array[j];
         sort_array[j] = tmp;
         sort_display(j, min_idx);
-        vTaskDelay(10);
+        vTaskDelay(delays[speed]);
     }
 }
 
@@ -286,14 +359,14 @@ void insertion_sort() {
         int j = i - 1;
 
         while (j >= 0 && sort_array[j] > key) {
-            sort_array[j + 1] = sort_array[j]; 
+            sort_array[j + 1] = sort_array[j];
             sort_display(j + 1, j);
             j--;
-            vTaskDelay(10);
+            vTaskDelay(delays[speed]);
         }
-        sort_array[j + 1] = key; 
+        sort_array[j + 1] = key;
         sort_display(j + 1, i);
-        vTaskDelay(10);
+        vTaskDelay(delays[speed]);
     }
 }
 
@@ -315,12 +388,12 @@ void shells() {
             for (j = i; j >= gap && sort_array[j - gap] > temp; j -= gap) {
                 sort_array[j] = sort_array[j - gap];
                 sort_display(j, j - gap);
-                vTaskDelay(10);
+                vTaskDelay(delays[speed]);
             }
 
             sort_array[j] = temp;
             sort_display(j, i);
-            vTaskDelay(10);
+            vTaskDelay(delays[speed]);
         }
     }
 }
@@ -333,6 +406,109 @@ void shell_sort() {
     sort_display();
     vTaskDelay(1000);
 }
+
+struct Menu_element {
+    String name;
+    String display;
+    int parent_id;
+    int prev;
+    int next;
+    int child;
+    std::vector<String> options;
+    int value;
+};
+
+Menu_element menu[] = {
+        {"Menu",           "Menu",           0, 0,  0,  1},
+        {"Algorithms",     "Algorithms",     0, 8,  8,  2},
+        {"Bubble sort",    "Bubble",         1, 7,  3,  2,  {"On", "Off"}, 0},
+        {"Insertion sort", "Insertion",      1, 2,  4,  3,  {"On", "Off"}, 0},
+        {"Selection sort", "Selection",      1, 3,  5,  4,  {"On", "Off"}, 0},
+        {"Shell sort",     "Shell",          1, 4,  6,  5,  {"On", "Off"}, 0},
+        {"Merge sort",     "Merge",          1, 5,  7,  6,  {"On", "Off"}, 0},
+        {"Quick sort",     "Quick",          1, 6,  2,  7,  {"On", "Off"}, 0},
+        {"Initialization", "Initialization", 0, 1,  1,  9},
+        {"Random",         "Random",         8, 11, 10, 9,  {"On", "Off"}, 0},
+        {"Sorted",         "Sorted",         8, 9,  11, 10, {"On", "Off"}, 0},
+        {"Asorted",        "Asorted",        8, 10, 9,  11, {"On", "Off"}, 0}, // 11
+};
+
+bool algorithms[] = {true, true, true, true, true, true};
+bool initializations[] = {true, true, true};
+
+typedef void (*FunctionPointer)();
+
+FunctionPointer algorithm_functions[] = {&bubble_sort, &i_sort, &s_sort, &shell_sort, &m_sort, &q_sort};
+FunctionPointer initialization_functions[] = {&sort_initialize_random, &sort_initialize_sorted,
+                                              &sort_initialize_asorted};
+
+void display_menu() {
+    dma_display->clearScreen();
+    dma_display->setTextColor(dma_display->color565(255, 255, 255));
+    dma_display->setCursor(2, 10);
+    dma_display->print(menu[menu_cursor].display);
+    if (!menu[menu_cursor].options.empty()) {
+        if (menu[menu_cursor].value == 0) {
+            dma_display->setTextColor(dma_display->color565(0, 128, 0));
+        } else {
+            dma_display->setTextColor(dma_display->color565(255, 255, 255));
+        }
+        dma_display->setCursor(2, 20);
+        dma_display->print(menu[menu_cursor].options[0]);
+
+        if (menu[menu_cursor].value == 1) {
+            dma_display->setTextColor(dma_display->color565(0, 128, 0));
+        } else {
+            dma_display->setTextColor(dma_display->color565(255, 255, 255));
+        }
+        dma_display->setCursor(15, 20);
+        dma_display->print(menu[menu_cursor].options[1]);
+    }
+}
+
+void menu_loop() {
+    while (true) {
+        display_menu();
+        vTaskDelay(250);
+        if (button_clicked[1]) {
+            menu_cursor = menu[menu_cursor].next;
+            button_clicked[1] = false;
+        } else if (button_clicked[2]) {
+            menu_cursor = menu[menu_cursor].prev;
+            button_clicked[2] = false;
+        } else if (button_clicked[3]) {
+            if (menu_cursor == 0) {
+                in_menu = false;
+                speed = 2;
+                button_clicked[3] = false;
+                return;
+            } else {
+                menu_cursor = menu[menu_cursor].parent_id;
+                button_clicked[3] = false;
+            }
+        } else if (button_clicked[0]) {
+            if (menu_cursor == 0) {
+                menu_cursor = 1;
+                button_clicked[0] = false;
+            } else if (menu_cursor >= 2 && menu_cursor <= 7) {
+                algorithms[menu_cursor - 2] = !algorithms[menu_cursor - 2];
+                menu[menu_cursor].value++;
+                menu[menu_cursor].value %= 2;
+                button_clicked[0] = false;
+            } else if (menu_cursor >= 9 && menu_cursor <= 11) {
+                initializations[menu_cursor - 9] = !initializations[menu_cursor - 9];
+                menu[menu_cursor].value++;
+                menu[menu_cursor].value %= 2;
+                button_clicked[0] = false;
+            } else {
+                menu_cursor = menu[menu_cursor].child;
+                button_clicked[0] = false;
+            }
+        }
+
+    }
+}
+
 
 //33 32 35 34
 const uint8_t button[4] = {34, 35, 32, 33};
@@ -360,6 +536,7 @@ void setup() {
     dma_display->setBrightness8(90); //0-255
     dma_display->clearScreen();
     dma_display->fillScreen(myBLACK);
+    dma_display->setFont(&Font5x7Fixed);
 
 
     //push buttons
@@ -367,7 +544,10 @@ void setup() {
         pinMode(button[i], INPUT_PULLUP);
     }
 
-    attachInterrupt(button[0], isr_cnf, FALLING);
+    attachInterrupt(button[0], button0_clicked, FALLING);
+    attachInterrupt(button[1], button1_clicked, FALLING);
+    attachInterrupt(button[2], button2_clicked, FALLING);
+    attachInterrupt(button[3], button3_clicked, FALLING);
 
     Serial.printf("MQTT Client init...");
     client.enableLastWillMessage("spp/lastwill",
@@ -381,30 +561,23 @@ void setup() {
 
 
 void loop() {
-    // client.loop();
-    sort_initialize_random();
-    shell_sort();
-    sort_initialize_random();
-    i_sort();
-    sort_initialize_random();
-    s_sort();
-    sort_initialize_random();
-    bubble_sort();
-    sort_initialize_random();
-    m_sort();
-    sort_initialize_random();
-    q_sort();
-
-
-
-    // if(sppStateUpd==true){
-    //   sppStateUpd=false;
-    //   Serial.printf("MQTT upd\n");
-    //   dma_display->clearScreen();
-    //   dma_display->setCursor(4,10);
-    //   dma_display->setTextColor(dma_display->color444(0, 255, 255));
-    //   dma_display->print(mqttRx);
-    // }
+    if (in_menu) {
+        menu_loop();
+    } else {
+        for (int i = 0; i < 6; i++) {
+            if (!algorithms[i]) {
+                continue;
+            }
+            for (int j = 0; j < 3; j++) {
+                if (!initializations[j]) {
+                    continue;
+                }
+                initialization_functions[j]();
+                algorithm_functions[i]();
+                if (in_menu) return;
+            }
+        }
+    }
 
 }
 

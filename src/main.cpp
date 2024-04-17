@@ -106,7 +106,7 @@ int menu_cursor = 0;
 bool in_menu = false;
 static unsigned long last_click_time = 0;
 #define CLICK_DELAY 250
-int speed = 2;
+int speed = 1;
 
 int delays[] = {500, 200, 100, 50, 20, 10, 5, 2, 1, 0};
 
@@ -199,6 +199,12 @@ void sort_display(int x1, int x2) {
     dma_display->drawFastVLine(x2, ROWS - sort_array[x2], sort_array[x2], dma_display->color565(128, 0, 0));
 }
 
+void sort_display(int x1, int x2, int x3) {
+    if (in_menu) return;
+    sort_display(x1, x2);
+    dma_display->drawFastVLine(x3, ROWS - sort_array[x3], sort_array[x3], dma_display->color565(0, 128, 0));
+}
+
 void sort_display(String name) {
     dma_display->clearScreen();
     dma_display->setCursor(2, 10);
@@ -230,21 +236,25 @@ void bubble_sort() {
 
 void merge(int a, int m, int b) {
     int n1 = m - a + 1;
-    int n2 = b - a;
+    int n2 = b - m;
     std::vector<int> L(n1);
     for (int i = 0; i < n1; ++i) {
         L[i] = sort_array[a + i];
+    }
+    std::vector<int> R(n2);
+    for (int i = 0; i < n2; ++i) {
+        R[i] = sort_array[m + i + 1];
     }
 
     int i = 0, j = 0, k = a;
     while (i < n1 && j < n2) {
         sort_display(k, m + j + 1);
         vTaskDelay(delays[speed]);
-        if (L[i] <= sort_array[m + j + 1]) {
+        if (L[i] <= R[j]) {
             sort_array[k] = L[i];
             ++i;
         } else {
-            sort_array[k] = sort_array[m + j + 1];
+            sort_array[k] = R[j];
             ++j;
         }
         ++k;
@@ -253,6 +263,12 @@ void merge(int a, int m, int b) {
     while (i < n1) {
         sort_array[k] = L[i];
         ++i;
+        ++k;
+    }
+
+    while (j < n2) {
+        sort_array[k] = R[j];
+        ++j;
         ++k;
     }
 }
@@ -290,7 +306,7 @@ int partition(int start, int end) {
     for (int j = start; j < end; j++) {
         if (sort_array[j] <= x) {
             i++;
-            sort_display(j, end);
+            sort_display(j, end, id);
             vTaskDelay(delays[speed]);
             int tmp = sort_array[i];
             sort_array[i] = sort_array[j];
@@ -302,7 +318,6 @@ int partition(int start, int end) {
     int tmp = sort_array[i];
     sort_array[i] = sort_array[end];
     sort_array[end] = tmp;
-    sort_display(i, end);
     vTaskDelay(delays[speed]);
     return i;
 }
@@ -333,7 +348,7 @@ void selection_sort() {
                 min = sort_array[i];
                 min_idx = i;
             }
-            sort_display(i, min_idx);
+            sort_display(i, min_idx, j);
             vTaskDelay(delays[speed]);
         }
         int tmp = sort_array[min_idx];
@@ -360,7 +375,7 @@ void insertion_sort() {
 
         while (j >= 0 && sort_array[j] > key) {
             sort_array[j + 1] = sort_array[j];
-            sort_display(j + 1, j);
+            sort_display(j + 1, j, i);
             j--;
             vTaskDelay(delays[speed]);
         }
@@ -380,7 +395,8 @@ void i_sort() {
 }
 
 void shells() {
-    for (int gap = COLS / 2; gap > 0; gap /= 2) {
+    for (int gap = COLS / 2; gap > 1; gap /= 2) {
+        gap--;
         for (int i = gap; i < COLS; i++) {
             int temp = sort_array[i];
             int j;
@@ -479,7 +495,7 @@ void menu_loop() {
         } else if (button_clicked[3]) {
             if (menu_cursor == 0) {
                 in_menu = false;
-                speed = 2;
+                speed = 1;
                 button_clicked[3] = false;
                 return;
             } else {
